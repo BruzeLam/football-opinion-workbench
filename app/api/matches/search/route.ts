@@ -169,10 +169,13 @@ function verifiedCandidates(query: string, teams: string[], date?: string, compe
       const stageMatches = !stage || match.competition.endsWith(stage);
       const dateMatches = !date || match.date === date;
       const yearMatches = !year || match.date.startsWith(year);
-      const confidence = Math.max(
-        42,
-        Math.min(98, 68 + teamHits * 12 + (stageMatches ? 16 : -16) + (dateMatches ? 8 : -14) + (yearMatches ? 6 : -18)),
-      );
+      const confidenceScore = 78
+        + teamHits * 12
+        + (stage ? (stageMatches ? 16 : -16) : 0)
+        + (date ? (dateMatches ? 8 : -14) : 0)
+        + (year ? (yearMatches ? 6 : -18) : 0)
+        + (teams.length && teamHits === 0 ? -28 : 0);
+      const confidence = Math.max(42, Math.min(98, confidenceScore));
       const reasonParts = [
         teamHits ? `${teamHits} 支球队匹配` : "未提供球队",
         stage ? (stageMatches ? `${stage}阶段匹配` : `实际为${match.competition.split("·")[1]?.trim()}`) : "按最近一届世界杯排序",
