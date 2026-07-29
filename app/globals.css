@@ -134,6 +134,11 @@ textarea { resize: vertical; min-height: 76px; line-height: 1.6; margin-bottom: 
 .thesis p { color: var(--lime); font-size: 10px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; margin: 0 0 10px; }
 .thesis h3 { font-size: clamp(24px, 3vw, 36px); line-height: 1.45; margin: 0; letter-spacing: -.8px; position: relative; z-index: 1; }
 .thesis h3 span { color: var(--lime); }
+.argument-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0 4px; }
+.argument-grid div { padding: 18px; background: white; border: 1px solid var(--line); border-top: 3px solid var(--green); }
+.argument-grid span { color: var(--green); font-size: 9px; font-weight: 900; letter-spacing: 1px; }
+.argument-grid b { display: block; margin: 8px 0 6px; font-size: 14px; }
+.argument-grid p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
 .tabs { display: flex; border-bottom: 1px solid var(--line); margin-top: 28px; }
 .tabs button { border: 0; background: none; color: #7a867e; padding: 14px 20px; font-size: 11px; font-weight: 700; border-bottom: 2px solid transparent; }
 .tabs button.active { color: var(--green); border-bottom-color: var(--green); }
@@ -189,6 +194,7 @@ footer span { color: var(--green-deep); font-weight: 900; }
   .source-card > p { margin-top: 10px; }
   .thesis { padding: 24px 22px; }
   .thesis h3 br { display: none; }
+  .argument-grid { grid-template-columns: 1fr; }
   .tabs { overflow-x: auto; }
   .tabs button { flex: 0 0 auto; padding: 13px 15px; }
   .script-list { padding: 5px 16px 12px; }

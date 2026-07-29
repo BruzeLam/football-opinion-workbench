@@ -4,24 +4,30 @@ import { useMemo, useRef, useState } from "react";
 
 const script = [
   { time: "00:00", text: "英格兰距离世界杯决赛有多远？比分上，是七分钟。战术上，是从领先那一刻开始，自己一步一步退出来的。" },
-  { time: "00:16", text: "第55分钟，戈登包抄破门。英格兰拿到了最理想的剧本：先进球，再逼阿根廷主动暴露空间。" },
-  { time: "00:34", text: "结果图赫尔一看领先，立刻把比赛从“怎么赢”，改成了“怎么熬”。五后卫不是领先自动保存键。" },
-  { time: "00:58", text: "英格兰进球以后，再也没有一次触球发生在阿根廷禁区内。不是没有射门，是连禁区都没再摸进去。" },
-  { time: "01:24", text: "恩佐扳平，劳塔罗补时绝杀。阿根廷一直在找赢球的方法，英格兰却只顾着寻找终场哨。" },
-  { time: "01:48", text: "一比零不是护身符，五后卫也不是时间机器。真正昂贵的能力，是领先以后仍然敢踢足球。" },
+  { time: "00:15", text: "第55分钟，罗杰斯送到后点，戈登破门。英格兰拿到了最理想的剧本：先进球，再逼阿根廷把身后的空间交出来。" },
+  { time: "00:33", text: "但图赫尔没有继续问“怎么赢”，而是马上研究“怎么熬”。第71分钟改成五后卫，听起来是加锁，实际效果却像把自家前门交给阿根廷保管。" },
+  { time: "00:54", text: "从戈登进球到劳塔罗绝杀，英格兰平均只有12%的控球。改成五后卫后的21分钟，阿根廷拿走接近93%的球权。这个不是低位防守，这是把比赛遥控器连电池一起送人。" },
+  { time: "01:16", text: "更扎眼的是：英格兰进球以后，再也没有一次触球发生在阿根廷禁区内。变阵后到第二个丢球之间，他们在对方半场只完成七次传球，前场出口基本被自己拆了。" },
+  { time: "01:39", text: "阿根廷当然也不是一路顺风。第76分钟麦卡利斯特击中门柱，第85分钟恩佐远射扳平，补时第92分钟，梅西第二次送出助攻，劳塔罗头球完成逆转。" },
+  { time: "02:02", text: "有人会说，面对卫冕冠军，最后阶段收缩没有错。没错，收缩是手段；但没有反击点、没有控球点、没有出球线路，那不叫管理优势，那叫等待判决。" },
+  { time: "02:24", text: "所以英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。一比零不是护身符，五后卫也不是时间机器。领先以后还敢踢，才是强队真正昂贵的能力。" },
 ];
 
 const facts = [
-  ["官方事实", "英格兰 1–2 阿根廷", "FIFA / 英格兰足总"],
-  ["官方事实", "戈登 55′；恩佐 85′；劳塔罗 90+3′", "英格兰足总"],
-  ["媒体统计", "变阵后约 21 分钟，阿根廷接近 93% 球权", "Sky Sports"],
-  ["分析判断", "撤掉推进点后，英格兰失去反击出口", "基于比赛记录"],
+  ["官方事实", "英格兰 1–2 阿根廷；比赛于亚特兰大举行", "FIFA / AFC"],
+  ["官方事实", "戈登 55′；恩佐 85′；劳塔罗 90+2′", "FIFA / Sky Sports"],
+  ["官方事实", "梅西助攻阿根廷两个进球", "FIFA / Sky Sports"],
+  ["媒体统计", "英格兰进球至绝杀期间，平均控球率仅约 12%", "Sky Sports"],
+  ["媒体统计", "变五后卫后的 21 分钟，阿根廷接近 93% 球权", "Sky Sports"],
+  ["媒体统计", "英格兰进球后没有再触球进入阿根廷禁区", "Sky Sports"],
+  ["媒体统计", "变阵后至第二个丢球，英格兰在对方半场仅 7 次传球", "Sky Sports"],
+  ["分析判断", "防守人数增加，但出球点和反击出口同时消失", "基于比赛进程"],
 ];
 
 const headlines = [
   "英格兰不是被绝杀，是从领先开始主动退出决赛",
-  "一比零之后，英格兰把进攻键拔了",
-  "五后卫没守住七分钟：图赫尔到底在怕什么？",
+  "12%控球、零次禁区触球：一比零之后，英格兰把进攻键拔了",
+  "五后卫不是自动保存键：图赫尔如何亲手交出比赛",
 ];
 
 type MatchCandidate = {
@@ -44,12 +50,12 @@ const matchCandidates = [
   {
     id: "wc-2026-eng-arg",
     competition: "2026 世界杯 · 半决赛",
-    date: "2026.07.16",
+    date: "2026.07.15",
     teams: "英格兰 vs 阿根廷",
     score: "1–2",
     status: "已结束",
     confidence: 96,
-    reason: "日期、双方球队和赛事阶段均匹配",
+    reason: "日期、双方球队、赛事阶段和赛果均已核验",
   },
   {
     id: "friendly-2025-eng-arg",
@@ -102,12 +108,12 @@ function buildOpinionPackage(match: MatchCandidate, stance: string) {
 
 export default function Home() {
   const [mode, setMode] = useState("资料锐评");
-  const [duration, setDuration] = useState("90 秒");
+  const [duration, setDuration] = useState("3 分钟");
   const [sharpness, setSharpness] = useState("犀利");
   const [generated, setGenerated] = useState(true);
   const [activeTab, setActiveTab] = useState("口播稿");
   const [copied, setCopied] = useState(false);
-  const [matchQuery, setMatchQuery] = useState("2026.7.16 英格兰 vs 阿根廷｜世界杯半决赛");
+  const [matchQuery, setMatchQuery] = useState("2026.7.15 英格兰 vs 阿根廷｜世界杯半决赛");
   const [selectedMatch, setSelectedMatch] = useState<MatchCandidate>(matchCandidates[0]);
   const [candidates, setCandidates] = useState<MatchCandidate[]>(matchCandidates);
   const [showMatches, setShowMatches] = useState(false);
@@ -197,7 +203,7 @@ export default function Home() {
             <p><b>1</b><em>:</em><b>2</b></p>
             <div><span className="flag argentina">☀</span><strong>阿根廷</strong></div>
           </div>
-          <div className="score-events"><span>戈登 55′</span><span>恩佐 85′ · 劳塔罗 90+3′</span></div>
+          <div className="score-events"><span>戈登 55′</span><span>恩佐 85′ · 劳塔罗 90+2′</span></div>
           <div className="verdict">“领先以后，他们停止了踢球。”</div>
         </aside>
       </section>
@@ -299,10 +305,10 @@ export default function Home() {
           </div>
 
           <aside className="source-card">
-            <div className="source-title"><span>✓</span><div><b>信息源已核验</b><small>4 条关键事实</small></div></div>
+            <div className="source-title"><span>✓</span><div><b>信息源已核验</b><small>8 条关键事实</small></div></div>
             <ul>
               <li><i className="official" />FIFA 比赛中心 <b>官方</b></li>
-              <li><i className="official" />英格兰足总 <b>官方</b></li>
+              <li><i className="official" />AFC 比赛报道 <b>官方</b></li>
               <li><i className="media" />Sky Sports <b>媒体</b></li>
             </ul>
             <p>当前为“{mode}”模式，战术判断基于比赛记录，不冒充完整录像观察。</p>
@@ -321,13 +327,19 @@ export default function Home() {
           <h3>{content.thesis}</h3>
         </div>
 
+        <div className="argument-grid">
+          <div><span>转折点</span><b>71′ 改打五后卫</b><p>人数增加了，前场出口却消失了。</p></div>
+          <div><span>核心证据</span><b>约 12% 控球率</b><p>领先后到绝杀前，比赛控制权几乎完全让出。</p></div>
+          <div><span>反方观点</span><b>收缩本身没有错</b><p>问题是没有保留反击点，也没有第二套出球方案。</p></div>
+        </div>
+
         <nav className="tabs" aria-label="内容包视图">
           {["口播稿", "画面时间轴", "事实卡", "标题文案"].map((tab) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab}</button>)}
         </nav>
 
         {activeTab === "口播稿" && (
           <article className="script-card">
-            <div className="script-toolbar"><span><i /> 预计 01:52</span><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
+            <div className="script-toolbar"><span><i /> 预计 {duration === "60 秒" ? "00:58" : duration === "90 秒" ? "01:28" : "02:42"}</span><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
             <div className="script-list">
               {content.script.map((item, index) => (
                 <div className="script-line" key={item.time}>
@@ -341,11 +353,14 @@ export default function Home() {
         {activeTab === "画面时间轴" && (
           <article className="timeline-card">
             {[
-              ["00:00–00:16", "比分牌 → 英格兰庆祝", "字幕：距离决赛只差七分钟"],
-              ["00:16–00:34", "戈登后点包抄进球", "突出罗杰斯传中线路"],
-              ["00:34–00:58", "阵型后退 → 阿根廷围攻", "叠加“五后卫 / 93%球权”"],
-              ["00:58–01:24", "连续扑救 → 恩佐扳平", "节奏提速，压缩空镜"],
-              ["01:24–01:52", "劳塔罗绝杀 → 英格兰失落", "落版核心观点"],
+              ["00:00–00:15", "比分牌 → 英格兰失落", "冷开场：距离决赛只差七分钟"],
+              ["00:15–00:33", "罗杰斯传中 → 戈登后点破门", "画线突出后点空当"],
+              ["00:33–00:54", "孔萨登场 → 阵型切换 5-4-1", "字幕：71′ 改打五后卫"],
+              ["00:54–01:16", "阿根廷连续控球与围攻", "数据卡：12% / 93% / 0次禁区触球"],
+              ["01:16–01:39", "出球失败 → 门柱 → 远射", "连续短切，强化窒息感"],
+              ["01:39–02:02", "恩佐扳平 → 梅西传中 → 劳塔罗绝杀", "两次进球用同一视觉标记串联"],
+              ["02:02–02:24", "图赫尔场边 → 凯恩赛后画面", "加入反方观点，避免单纯甩锅"],
+              ["02:24–02:42", "空球场与比分落版", "结论：领先以后仍然敢踢"],
             ].map(([time, visual, note]) => <div key={time}><time>{time}</time><b>{visual}</b><span>{note}</span></div>)}
           </article>
         )}
