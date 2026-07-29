@@ -14,14 +14,14 @@ const script = [
 ];
 
 const facts = [
-  ["官方事实", "英格兰 1–2 阿根廷；比赛于亚特兰大举行", "FIFA / AFC"],
-  ["官方事实", "戈登 55′；恩佐 85′；劳塔罗 90+2′", "FIFA / Sky Sports"],
-  ["官方事实", "梅西助攻阿根廷两个进球", "FIFA / Sky Sports"],
-  ["媒体统计", "英格兰进球至绝杀期间，平均控球率仅约 12%", "Sky Sports"],
-  ["媒体统计", "变五后卫后的 21 分钟，阿根廷接近 93% 球权", "Sky Sports"],
-  ["媒体统计", "英格兰进球后没有再触球进入阿根廷禁区", "Sky Sports"],
-  ["媒体统计", "变阵后至第二个丢球，英格兰在对方半场仅 7 次传球", "Sky Sports"],
-  ["分析判断", "防守人数增加，但出球点和反击出口同时消失", "基于比赛进程"],
+  { type: "官方事实", fact: "英格兰 1–2 阿根廷；比赛于亚特兰大举行", source: "FIFA / AFC", url: "https://www.fifa.com/en/articles/england-argentina-match-report-highlights" },
+  { type: "官方事实", fact: "戈登 55′；恩佐 85′；劳塔罗 90+2′", source: "FIFA / Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "官方事实", fact: "梅西助攻阿根廷两个进球", source: "FIFA / Sky Sports", url: "https://www.fifa.com/en/articles/england-argentina-match-report-highlights" },
+  { type: "媒体统计", fact: "英格兰进球至绝杀期间，平均控球率仅约 12%", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "媒体统计", fact: "变五后卫后的 21 分钟，阿根廷接近 93% 球权", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "媒体统计", fact: "英格兰进球后没有再触球进入阿根廷禁区", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "媒体统计", fact: "变阵后至第二个丢球，英格兰在对方半场仅 7 次传球", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "分析判断", fact: "防守人数增加，但出球点和反击出口同时消失", source: "编辑判断" },
 ];
 
 const headlines = [
@@ -46,6 +46,31 @@ type MatchCandidate = {
   awayScore?: number | null;
 };
 
+type ScriptLine = { time: string; text: string };
+type FactItem = { type: string; fact: string; source: string; url?: string };
+type ContentPackage = {
+  thesis: string;
+  script: ScriptLine[];
+  facts: FactItem[];
+  headlines: string[];
+};
+
+const durationIndexes: Record<string, number[]> = {
+  "60 秒": [0, 3, 4, 7],
+  "90 秒": [0, 1, 2, 3, 5, 7],
+  "3 分钟": [0, 1, 2, 3, 4, 5, 6, 7],
+};
+
+function fitDuration(lines: ScriptLine[], duration: string) {
+  const indexes = durationIndexes[duration] || durationIndexes["3 分钟"];
+  const selected = indexes.map((index) => lines[index]).filter(Boolean);
+  const step = duration === "60 秒" ? 18 : duration === "90 秒" ? 16 : 20;
+  return selected.map((line, index) => ({
+    ...line,
+    time: `${String(Math.floor(index * step / 60)).padStart(2, "0")}:${String(index * step % 60).padStart(2, "0")}`,
+  }));
+}
+
 const matchCandidates = [
   {
     id: "wc-2026-eng-arg",
@@ -69,7 +94,7 @@ const matchCandidates = [
   },
 ] satisfies MatchCandidate[];
 
-function buildOpinionPackage(match: MatchCandidate, stance: string) {
+function buildOpinionPackage(match: MatchCandidate, stance: string, duration: string): ContentPackage {
   const [fallbackHome, fallbackAway] = match.teams.split(" vs ");
   const home = match.homeTeam || fallbackHome || "主队";
   const away = match.awayTeam || fallbackAway || "客队";
@@ -89,14 +114,15 @@ function buildOpinionPackage(match: MatchCandidate, stance: string) {
     { time: "01:42", text: `${verdict} 下一场可以换人、换阵，最难换掉的，是球队在关键时刻下意识选择的那条路。` },
   ];
 
+  const paddedScript = [...generatedScript, generatedScript[4], generatedScript[5]];
   return {
     thesis: verdict,
-    script: generatedScript,
+    script: fitDuration(paddedScript, duration),
     facts: [
-      ["比赛数据", `${home} ${match.score} ${away}`, match.source || "用户确认"],
-      ["赛事信息", `${match.date} · ${match.competition}`, match.source || "用户确认"],
-      ["分析判断", "比赛矛盾由结果、对阵与用户立场提炼", "观点引擎"],
-      ["事实边界", "未获得的进球时间、阵容和技术统计不会自动补写", "系统规则"],
+      { type: "比赛数据", fact: `${home} ${match.score} ${away}`, source: match.source || "用户确认" },
+      { type: "赛事信息", fact: `${match.date} · ${match.competition}`, source: match.source || "用户确认" },
+      { type: "分析判断", fact: "比赛矛盾由结果、对阵与用户立场提炼", source: "观点引擎" },
+      { type: "事实边界", fact: "未获得的进球时间、阵容和技术统计不会自动补写", source: "系统规则" },
     ],
     headlines: [
       `${home}对${away}：比分只是结果，选择才是答案`,
@@ -120,18 +146,70 @@ export default function Home() {
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState("");
   const [stance, setStance] = useState("英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。");
-  const [content, setContent] = useState(() => ({ thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。", script, facts, headlines }));
+  const [contentKind, setContentKind] = useState<"旗舰样片" | "AI 初稿" | "演示数据">("旗舰样片");
+  const [editing, setEditing] = useState(false);
+  const [content, setContent] = useState<ContentPackage>(() => ({
+    thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。",
+    script: fitDuration(script, "3 分钟"),
+    facts,
+    headlines,
+  }));
   const resultRef = useRef<HTMLElement>(null);
+  const workspaceRef = useRef<HTMLElement>(null);
 
   const total = useMemo(() => duration === "60 秒" ? "约 280 字" : duration === "3 分钟" ? "约 900 字" : "约 520 字", [duration]);
 
   function generate() {
     setGenerated(false);
     window.setTimeout(() => {
-      setContent(buildOpinionPackage(selectedMatch, stance));
+      setContent(buildOpinionPackage(selectedMatch, stance, duration));
+      setContentKind(selectedMatch.id === "wc-2026-eng-arg" ? "旗舰样片" : "AI 初稿");
       setGenerated(true);
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 450);
+  }
+
+  function changeDuration(nextDuration: string) {
+    setDuration(nextDuration);
+    if (contentKind === "旗舰样片") {
+      setContent((current) => ({ ...current, script: fitDuration(script, nextDuration) }));
+    } else {
+      setContent(buildOpinionPackage(selectedMatch, stance, nextDuration));
+    }
+  }
+
+  function openFlagship() {
+    setSelectedMatch(matchCandidates[0]);
+    setMatchQuery("2026.7.15 英格兰 vs 阿根廷｜世界杯半决赛");
+    setContent({
+      thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。",
+      script: fitDuration(script, duration),
+      facts,
+      headlines,
+    });
+    setContentKind("旗舰样片");
+    setActiveTab("口播稿");
+    window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function updateScriptLine(index: number, text: string) {
+    setContent((current) => ({
+      ...current,
+      script: current.script.map((line, lineIndex) => lineIndex === index ? { ...line, text } : line),
+    }));
+  }
+
+  function removeScriptLine(index: number) {
+    setContent((current) => ({ ...current, script: current.script.filter((_, lineIndex) => lineIndex !== index) }));
+  }
+
+  function rewriteScriptLine(index: number) {
+    setContent((current) => ({
+      ...current,
+      script: current.script.map((line, lineIndex) => lineIndex === index
+        ? { ...line, text: `${line.text.replace(/[。！]$/, "")}。换句话说，比分能遮住问题一晚，比赛内容不会替任何人长期保密。` }
+        : line),
+    }));
   }
 
   async function copyScript() {
@@ -165,12 +243,14 @@ export default function Home() {
   function selectMatch(candidate: MatchCandidate) {
     setSelectedMatch(candidate);
     setMatchQuery(`${candidate.date} ${candidate.teams}｜${candidate.competition}`);
+    setContentKind(candidate.id === "wc-2026-eng-arg" ? "旗舰样片" : "AI 初稿");
     setShowMatches(false);
   }
 
   function loadDemoMatch() {
     setCandidates(matchCandidates);
     setSearchMessage("以下内容是演示数据，不代表真实赛果");
+    setContentKind("演示数据");
   }
 
   return (
@@ -181,7 +261,7 @@ export default function Home() {
           <span>开球<span className="brand-light"> · 观点工作台</span></span>
         </a>
         <div className="top-actions">
-          <span className="status"><i /> Skill 已连接</span>
+          <span className="status"><i /> 观点引擎已就绪</span>
           <button className="ghost-button">历史内容 <span>⌄</span></button>
         </div>
       </header>
@@ -194,6 +274,10 @@ export default function Home() {
           <p className="hero-description">核验事实，提炼矛盾，生成有节奏的原创中文足球口播。<br />不是复述比分，是解释比赛为什么会变成这样。</p>
           <div className="hero-tags">
             <span>事实有出处</span><span>观点够鲜明</span><span>口播能落地</span>
+          </div>
+          <div className="hero-actions">
+            <button className="primary-cta" onClick={openFlagship}>体验旗舰样片 <b>→</b></button>
+            <button className="secondary-cta" onClick={() => workspaceRef.current?.scrollIntoView({ behavior: "smooth" })}>输入我的比赛</button>
           </div>
         </div>
         <aside className="score-card">
@@ -208,7 +292,7 @@ export default function Home() {
         </aside>
       </section>
 
-      <section className="workspace">
+      <section className="workspace" ref={workspaceRef}>
         <div className="section-heading">
           <div><p className="step">STEP 01</p><h2>设置这期内容</h2></div>
           <p>输入最少信息，剩下的交给观点引擎。</p>
@@ -285,7 +369,7 @@ export default function Home() {
               <div>
                 <label>目标时长</label>
                 <div className="segmented compact">
-                  {["60 秒", "90 秒", "3 分钟"].map((item) => <button key={item} className={duration === item ? "active" : ""} onClick={() => setDuration(item)}>{item}</button>)}
+                  {["60 秒", "90 秒", "3 分钟"].map((item) => <button key={item} className={duration === item ? "active" : ""} onClick={() => changeDuration(item)}>{item}</button>)}
                 </div>
               </div>
             </div>
@@ -307,9 +391,9 @@ export default function Home() {
           <aside className="source-card">
             <div className="source-title"><span>✓</span><div><b>信息源已核验</b><small>8 条关键事实</small></div></div>
             <ul>
-              <li><i className="official" />FIFA 比赛中心 <b>官方</b></li>
-              <li><i className="official" />AFC 比赛报道 <b>官方</b></li>
-              <li><i className="media" />Sky Sports <b>媒体</b></li>
+              <li><i className="official" /><a href="https://www.fifa.com/en/articles/england-argentina-match-report-highlights" target="_blank" rel="noreferrer">FIFA 比赛中心 ↗</a><b>官方</b></li>
+              <li><i className="official" /><a href="https://www.the-afc.com/en/national/fifa_world_cup.html/news/s-final-messis-argentina-stun-england-in-comeback" target="_blank" rel="noreferrer">AFC 比赛报道 ↗</a><b>官方</b></li>
+              <li><i className="media" /><a href="https://www.skysports.com/football/england-vs-argentina/549867" target="_blank" rel="noreferrer">Sky Sports ↗</a><b>媒体</b></li>
             </ul>
             <p>当前为“{mode}”模式，战术判断基于比赛记录，不冒充完整录像观察。</p>
           </aside>
@@ -319,7 +403,7 @@ export default function Home() {
       <section className={`results ${generated ? "" : "loading"}`} ref={resultRef}>
         <div className="section-heading result-heading">
           <div><p className="step">STEP 02</p><h2>本期内容包</h2></div>
-          <div className="result-meta"><span>90 / 100 事实完整度</span><span>{sharpness}表达</span><span>{total}</span></div>
+          <div className="result-meta"><span className={`content-kind kind-${contentKind}`}>{contentKind}</span><span>90 / 100 事实完整度</span><span>{sharpness}表达</span><span>{total}</span></div>
         </div>
 
         <div className="thesis">
@@ -334,16 +418,21 @@ export default function Home() {
         </div>
 
         <nav className="tabs" aria-label="内容包视图">
-          {["口播稿", "画面时间轴", "事实卡", "标题文案"].map((tab) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+          {["口播稿", "画面时间轴", "事实卡", "标题文案", "编辑策略"].map((tab) => <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab}</button>)}
         </nav>
 
         {activeTab === "口播稿" && (
           <article className="script-card">
-            <div className="script-toolbar"><span><i /> 预计 {duration === "60 秒" ? "00:58" : duration === "90 秒" ? "01:28" : "02:42"}</span><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
+            <div className="script-toolbar">
+              <span><i /> 预计 {duration === "60 秒" ? "00:58" : duration === "90 秒" ? "01:28" : "02:42"} · {content.script.reduce((sum, item) => sum + item.text.length, 0)} 字</span>
+              <div><button onClick={() => setEditing((value) => !value)}>{editing ? "完成编辑" : "在线编辑"}</button><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
+            </div>
             <div className="script-list">
               {content.script.map((item, index) => (
-                <div className="script-line" key={item.time}>
-                  <time>{item.time}</time><p>{item.text}</p><span>{index === 0 || index === 5 ? "金句" : index === 3 ? "数据" : ""}</span>
+                <div className={`script-line ${editing ? "is-editing" : ""}`} key={`${item.time}-${index}`}>
+                  <time>{item.time}</time>
+                  {editing ? <textarea value={item.text} onChange={(event) => updateScriptLine(index, event.target.value)} aria-label={`编辑第 ${index + 1} 段口播`} /> : <p>{item.text}</p>}
+                  {editing ? <span className="line-actions"><button onClick={() => rewriteScriptLine(index)}>改写</button><button onClick={() => removeScriptLine(index)}>删除</button></span> : <span>{index === 0 || index === 5 ? "金句" : index === 3 ? "数据" : ""}</span>}
                 </div>
               ))}
             </div>
@@ -367,7 +456,7 @@ export default function Home() {
 
         {activeTab === "事实卡" && (
           <article className="facts-card">
-            {content.facts.map(([type, fact, source]) => <div key={fact}><span>{type}</span><b>{fact}</b><small>{source}</small></div>)}
+            {content.facts.map(({ type, fact, source, url }) => <div key={fact}><span>{type}</span><b>{fact}</b><small>{url ? <a href={url} target="_blank" rel="noreferrer">{source} ↗</a> : source}</small></div>)}
           </article>
         )}
 
@@ -376,9 +465,22 @@ export default function Home() {
             {content.headlines.map((headline, index) => <div key={headline}><span>0{index + 1}</span><b>{headline}</b><button onClick={() => navigator.clipboard?.writeText(headline)}>复制</button></div>)}
           </article>
         )}
+
+        {activeTab === "编辑策略" && (
+          <article className="strategy-card">
+            <header><span>为什么这样写</span><h3>不是堆情绪，而是先让事实站稳，再把矛盾推到台前。</h3></header>
+            <div className="strategy-grid">
+              <section><b>01 · 冷开场</b><p>先给结果与代价，不绕背景，让观众在前五秒知道“这场球为什么值得讲”。</p></section>
+              <section><b>02 · 单一矛盾</b><p>把复杂比赛压缩成“领先后是否还敢踢”，保证口播有一条清晰主线。</p></section>
+              <section><b>03 · 证据递进</b><p>换人、控球、射门、进球按因果排序；数据不是装饰，而是观点的承重墙。</p></section>
+              <section><b>04 · 给反方出口</b><p>承认收缩本身合理，再指出执行缺陷，避免把锐评写成情绪宣判。</p></section>
+              <section><b>05 · 原创表达</b><p>借鉴强节奏足球评论的方法，不复刻任何真实创作者的口头禅或身份。</p></section>
+            </div>
+          </article>
+        )}
       </section>
 
-      <footer><span>开球 · 观点工作台</span><p>原创表达 · 事实优先 · 不冒充任何真实创作者</p><b>Powered by $football-opinion-show-producer</b></footer>
+      <footer><span>开球 · 观点工作台</span><p>原创表达 · 事实优先 · 不冒充任何真实创作者</p><b>观点引擎 · MVP</b></footer>
     </main>
   );
 }
