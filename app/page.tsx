@@ -3,31 +3,34 @@
 import { useMemo, useRef, useState } from "react";
 
 const script = [
-  { time: "00:00", text: "英格兰距离世界杯决赛有多远？比分上，是七分钟。战术上，是从领先那一刻开始，自己一步一步退出来的。" },
-  { time: "00:15", text: "第55分钟，罗杰斯送到后点，戈登破门。英格兰拿到了最理想的剧本：先进球，再逼阿根廷把身后的空间交出来。" },
-  { time: "00:33", text: "但图赫尔没有继续问“怎么赢”，而是马上研究“怎么熬”。第71分钟改成五后卫，听起来是加锁，实际效果却像把自家前门交给阿根廷保管。" },
-  { time: "00:54", text: "从戈登进球到劳塔罗绝杀，英格兰平均只有12%的控球。改成五后卫后的21分钟，阿根廷拿走接近93%的球权。这个不是低位防守，这是把比赛遥控器连电池一起送人。" },
-  { time: "01:16", text: "更扎眼的是：英格兰进球以后，再也没有一次触球发生在阿根廷禁区内。变阵后到第二个丢球之间，他们在对方半场只完成七次传球，前场出口基本被自己拆了。" },
-  { time: "01:39", text: "阿根廷当然也不是一路顺风。第76分钟麦卡利斯特击中门柱，第85分钟恩佐远射扳平，补时第92分钟，梅西第二次送出助攻，劳塔罗头球完成逆转。" },
-  { time: "02:02", text: "有人会说，面对卫冕冠军，最后阶段收缩没有错。没错，收缩是手段；但没有反击点、没有控球点、没有出球线路，那不叫管理优势，那叫等待判决。" },
-  { time: "02:24", text: "所以英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。一比零不是护身符，五后卫也不是时间机器。领先以后还敢踢，才是强队真正昂贵的能力。" },
+  { time: "00:00", text: "英格兰距离世界杯决赛有多远？记分牌上，是七分钟；比赛逻辑上，他们从领先那一刻就开始往决赛门外走。最残酷的不是被绝杀，而是你能清楚看见一支球队怎样亲手缩小自己的生存空间。" },
+  { time: "00:22", text: "第55分钟，罗杰斯右路低平球找到后点，戈登抢在莫利纳身前破门。这个进球证明英格兰原来的办法有效：前场有人跑、边路敢推进、阿根廷必须回头防。领先本来应该放大这套威胁，因为对手越着急，身后越容易留下空间。" },
+  { time: "00:47", text: "可英格兰随后改变的，不只是一套阵型，而是整场比赛的交易方式。第71分钟孔萨登场，球队转成5-4-1。中路人数确实多了，但最前面的接应、持球和反击距离被一起拉断。五名后卫像多加了一层门板，却没人负责把不断飞回来的球运出屋子。" },
+  { time: "01:13", text: "数据把这条因果链写得很直白：戈登进球到劳塔罗绝杀，英格兰平均控球率只有约12%；变成五后卫后的21分钟，阿根廷拿走接近93%的球权。低位防守可以让出球权，但不能让出每一次下一回合。英格兰的解围不是反击的起点，只是阿根廷下一轮进攻的开球仪式。" },
+  { time: "01:40", text: "更致命的是出口消失：英格兰进球以后，在阿根廷禁区内再无触球；变阵到第二个丢球之间，对方半场只有七次传球，前场三区更只剩一次触球。当凯恩与中场之间隔着一整片无人区，阿根廷中卫不用后退，边后卫不用犹豫，梅西也不必为丢球后的转换风险付账。" },
+  { time: "02:08", text: "于是警报不是突然响的，而是一遍遍预演。第69分钟皮克福德扑出冈萨雷斯的头球，第76分钟麦卡利斯特中柱；第85分钟，梅西参与短角球后横传，恩佐远射扳平；补时阶段麦卡利斯特再次击中门柱，梅西回收二点球，再用右脚把球送到后点，劳塔罗完成逆转。绝杀只是最后一张账单，消费早就开始了。" },
+  { time: "02:37", text: "最强的反方意见是：面对卫冕冠军，又是世界杯半决赛，领先后收缩完全合理。确实，收缩不是原罪，图赫尔也解释说中路空当太大，需要增加制空和保护。但问题在于，防守从来不是“后卫数量加一”这么简单。没有出球点、没有反击威胁、没有让对手回头的理由，阵型越厚，承受的进攻次数反而越多。" },
+  { time: "03:07", text: "这场失利真正刺痛英格兰的，是它又揭开了同一种大赛焦虑：领先以后，球队首先想到的不是怎样继续控制对手，而是怎样让时间赶紧消失。图赫尔换了，阵型换了，那个下意识却没有换。强队管理领先，不是把进攻键拔掉，而是让对手始终知道——你敢全压上，我仍然能让你付钱。英格兰缺的不是最后七分钟，缺的是领先后继续踢球的勇气和结构。" },
 ];
 
 const facts = [
   { type: "官方事实", fact: "英格兰 1–2 阿根廷；比赛于亚特兰大举行", source: "FIFA / AFC", url: "https://www.fifa.com/en/articles/england-argentina-match-report-highlights" },
   { type: "官方事实", fact: "戈登 55′；恩佐 85′；劳塔罗 90+2′", source: "FIFA / Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
   { type: "官方事实", fact: "梅西助攻阿根廷两个进球", source: "FIFA / Sky Sports", url: "https://www.fifa.com/en/articles/england-argentina-match-report-highlights" },
+  { type: "比赛进程", fact: "69′ 皮克福德扑救；76′ 麦卡利斯特头球中柱", source: "FIFA / Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "比赛进程", fact: "绝杀前麦卡利斯特再次中柱，梅西回收二点后传中", source: "FIFA", url: "https://www.fifa.com/en/articles/england-argentina-match-report-highlights" },
   { type: "媒体统计", fact: "英格兰进球至绝杀期间，平均控球率仅约 12%", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
   { type: "媒体统计", fact: "变五后卫后的 21 分钟，阿根廷接近 93% 球权", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
   { type: "媒体统计", fact: "英格兰进球后没有再触球进入阿根廷禁区", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
   { type: "媒体统计", fact: "变阵后至第二个丢球，英格兰在对方半场仅 7 次传球", source: "Sky Sports", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
-  { type: "分析判断", fact: "防守人数增加，但出球点和反击出口同时消失", source: "编辑判断" },
+  { type: "赛后回应", fact: "图赫尔承认球队进球后过于被动；凯恩认为只想守住领先远远不够", source: "Sky Sports / BBC 赛后采访转引", url: "https://www.skysports.com/football/england-vs-argentina/549867" },
+  { type: "分析判断", fact: "防守人数增加，但出球点、反击威胁与攻守转换同时消失", source: "编辑判断" },
 ];
 
 const headlines = [
-  "英格兰不是被绝杀，是从领先开始主动退出决赛",
-  "12%控球、零次禁区触球：一比零之后，英格兰把进攻键拔了",
-  "五后卫不是自动保存键：图赫尔如何亲手交出比赛",
+  "英格兰不是七分钟丢掉决赛，而是领先后主动退出比赛",
+  "12%控球、零次禁区触球：英格兰的解围，只是阿根廷下一次进攻的开球",
+  "五后卫为什么越守越危险？图赫尔切断了英格兰唯一的逃生通道",
 ];
 
 type MatchCandidate = {
@@ -64,6 +67,7 @@ const durationIndexes: Record<string, number[]> = {
 function fitDuration(lines: ScriptLine[], duration: string) {
   const indexes = durationIndexes[duration] || durationIndexes["3 分钟"];
   const selected = indexes.map((index) => lines[index]).filter(Boolean);
+  if (duration === "3 分钟") return selected;
   const step = duration === "60 秒" ? 18 : duration === "90 秒" ? 16 : 20;
   return selected.map((line, index) => ({
     ...line,
@@ -145,11 +149,11 @@ export default function Home() {
   const [showMatches, setShowMatches] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchMessage, setSearchMessage] = useState("");
-  const [stance, setStance] = useState("英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。");
+  const [stance, setStance] = useState("英格兰输掉的不只是最后七分钟，而是领先后继续控制比赛的勇气与结构。");
   const [contentKind, setContentKind] = useState<"旗舰样片" | "AI 初稿" | "演示数据">("旗舰样片");
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState<ContentPackage>(() => ({
-    thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。",
+    thesis: "英格兰输掉的不只是最后七分钟，而是领先后继续控制比赛的勇气与结构。",
     script: fitDuration(script, "3 分钟"),
     facts,
     headlines,
@@ -182,7 +186,7 @@ export default function Home() {
     setSelectedMatch(matchCandidates[0]);
     setMatchQuery("2026.7.15 英格兰 vs 阿根廷｜世界杯半决赛");
     setContent({
-      thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。",
+      thesis: "英格兰输掉的不只是最后七分钟，而是领先后继续控制比赛的勇气与结构。",
       script: fitDuration(script, duration),
       facts,
       headlines,
@@ -412,9 +416,9 @@ export default function Home() {
         </div>
 
         <div className="argument-grid">
-          <div><span>转折点</span><b>71′ 改打五后卫</b><p>人数增加了，前场出口却消失了。</p></div>
-          <div><span>核心证据</span><b>约 12% 控球率</b><p>领先后到绝杀前，比赛控制权几乎完全让出。</p></div>
-          <div><span>反方观点</span><b>收缩本身没有错</b><p>问题是没有保留反击点，也没有第二套出球方案。</p></div>
+          <div><span>结构断点</span><b>71′ 转为 5-4-1</b><p>中路人数增加，前场接应与转换线路却同时断开。</p></div>
+          <div><span>因果证据</span><b>93% 球权 + 7 次传球</b><p>解围无法变成控球，阿根廷得以连续发动下一回合。</p></div>
+          <div><span>最强反方</span><b>半决赛领先，收缩合理</b><p>但收缩不等于撤掉全部反击威胁；防守也需要让对手付出风险。</p></div>
         </div>
 
         <nav className="tabs" aria-label="内容包视图">
@@ -424,7 +428,7 @@ export default function Home() {
         {activeTab === "口播稿" && (
           <article className="script-card">
             <div className="script-toolbar">
-              <span><i /> 预计 {duration === "60 秒" ? "00:58" : duration === "90 秒" ? "01:28" : "02:42"} · {content.script.reduce((sum, item) => sum + item.text.length, 0)} 字</span>
+              <span><i /> 预计 {duration === "60 秒" ? "00:58" : duration === "90 秒" ? "01:28" : "03:35"} · {content.script.reduce((sum, item) => sum + item.text.length, 0)} 字</span>
               <div><button onClick={() => setEditing((value) => !value)}>{editing ? "完成编辑" : "在线编辑"}</button><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
             </div>
             <div className="script-list">
@@ -442,14 +446,14 @@ export default function Home() {
         {activeTab === "画面时间轴" && (
           <article className="timeline-card">
             {[
-              ["00:00–00:15", "比分牌 → 英格兰失落", "冷开场：距离决赛只差七分钟"],
-              ["00:15–00:33", "罗杰斯传中 → 戈登后点破门", "画线突出后点空当"],
-              ["00:33–00:54", "孔萨登场 → 阵型切换 5-4-1", "字幕：71′ 改打五后卫"],
-              ["00:54–01:16", "阿根廷连续控球与围攻", "数据卡：12% / 93% / 0次禁区触球"],
-              ["01:16–01:39", "出球失败 → 门柱 → 远射", "连续短切，强化窒息感"],
-              ["01:39–02:02", "恩佐扳平 → 梅西传中 → 劳塔罗绝杀", "两次进球用同一视觉标记串联"],
-              ["02:02–02:24", "图赫尔场边 → 凯恩赛后画面", "加入反方观点，避免单纯甩锅"],
-              ["02:24–02:42", "空球场与比分落版", "结论：领先以后仍然敢踢"],
+              ["00:00–00:22", "比分牌 → 英格兰失落", "冷开场：七分钟只是表象，退出控制才是原因"],
+              ["00:22–00:47", "罗杰斯传中 → 戈登后点破门", "画线展示原方案为何有效，以及领先后的反击空间"],
+              ["00:47–01:13", "孔萨登场 → 阵型切换 5-4-1", "冻结画面：后卫增加，凯恩与中场连接断开"],
+              ["01:13–01:40", "阿根廷连续回收二点并再次组织", "数据卡：12% / 93%，用循环箭头表现“解围即重开”"],
+              ["01:40–02:08", "英格兰长传丢失 → 阿根廷中卫压上", "数据卡：零次禁区触球 / 对方半场仅七次传球"],
+              ["02:08–02:37", "扑救 → 两次门柱 → 扳平 → 绝杀", "按时间递进警报，说明绝杀并非偶然突发"],
+              ["02:37–03:07", "图赫尔与凯恩赛后画面", "呈现收缩的合理性，再拆解执行上的结构代价"],
+              ["03:07–03:35", "英格兰近年大赛节点 → 空球场落版", "结论：强队管理领先，必须保留让对手回头的能力"],
             ].map(([time, visual, note]) => <div key={time}><time>{time}</time><b>{visual}</b><span>{note}</span></div>)}
           </article>
         )}
