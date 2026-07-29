@@ -145,12 +145,12 @@ export default function Home() {
         setCandidates(data.matches);
         setSearchMessage(`已从 ${data.source} 获取真实赛程`);
       } else {
-        setCandidates(matchCandidates);
-        setSearchMessage(data.error || "未找到足够明确的比赛，已显示演示候选");
+        setCandidates([]);
+        setSearchMessage(data.error || "没有找到可信的真实比赛，请补充球队、日期或赛事");
       }
     } catch {
-      setCandidates(matchCandidates);
-      setSearchMessage("在线匹配暂不可用，已显示演示候选");
+      setCandidates([]);
+      setSearchMessage("在线匹配暂不可用，你可以稍后重试或载入演示比赛");
     } finally {
       setSearching(false);
     }
@@ -160,6 +160,11 @@ export default function Home() {
     setSelectedMatch(candidate);
     setMatchQuery(`${candidate.date} ${candidate.teams}｜${candidate.competition}`);
     setShowMatches(false);
+  }
+
+  function loadDemoMatch() {
+    setCandidates(matchCandidates);
+    setSearchMessage("以下内容是演示数据，不代表真实赛果");
   }
 
   return (
@@ -224,11 +229,18 @@ export default function Home() {
               {showMatches && (
                 <div className="match-results" aria-live="polite">
                   <div className="match-results-head">
-                    <div><b>找到 {matchCandidates.length} 场可能的比赛</b><span>按匹配度排序</span></div>
+                    <div><b>{searching ? "正在搜索真实比赛" : `找到 ${candidates.length} 场可能的比赛`}</b><span>按匹配度排序</span></div>
                     <button onClick={() => setShowMatches(false)} aria-label="关闭候选比赛">×</button>
                   </div>
                   {searching && <div className="match-loading">正在识别球队、日期和赛事…</div>}
                   {!searching && searchMessage && <div className="match-message">{searchMessage}</div>}
+                  {!searching && candidates.length === 0 && (
+                    <div className="no-match">
+                      <b>没有可确认的比赛</b>
+                      <span>建议补充球队名称、完整日期或赛事阶段。</span>
+                      <button onClick={loadDemoMatch}>载入演示比赛</button>
+                    </div>
+                  )}
                   {!searching && candidates.map((candidate, index) => (
                     <button className="match-option" key={candidate.id} onClick={() => selectMatch(candidate)}>
                       <span className="match-rank">0{index + 1}</span>

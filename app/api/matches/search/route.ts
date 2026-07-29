@@ -13,6 +13,7 @@ type SportsDbEvent = {
   strHomeTeam?: string;
   strAwayTeam?: string;
   strVenue?: string | null;
+  strRound?: string | null;
 };
 
 const teamAliases: Record<string, string> = {
@@ -54,7 +55,31 @@ function extractDate(query: string) {
   if (short) {
     return `${new Date().getFullYear()}-${short[1].padStart(2, "0")}-${short[2].padStart(2, "0")}`;
   }
+  const now = new Date();
+  if (query.includes("昨天") || query.includes("昨晚")) {
+    now.setDate(now.getDate() - 1);
+    return now.toISOString().slice(0, 10);
+  }
+  if (query.includes("今天") || query.includes("今晚")) return now.toISOString().slice(0, 10);
+
+  const year = query.match(/(20\d{2})/)?.[1];
+  if (year === "2026" && query.includes("世界杯") && /(总决赛|决赛)/.test(query)) {
+    return "2026-07-19";
+  }
   return undefined;
+}
+
+function extractCompetition(query: string) {
+  const competitions = [
+    ["世界杯", "World Cup"],
+    ["欧冠", "Champions League"],
+    ["英超", "Premier League"],
+    ["西甲", "La Liga"],
+    ["德甲", "Bundesliga"],
+    ["意甲", "Serie A"],
+    ["法甲", "Ligue 1"],
+  ];
+  return competitions.find(([alias]) => query.includes(alias))?.[1];
 }
 
 async function sportsDb(path: string) {
@@ -96,6 +121,7 @@ export async function GET(request: NextRequest) {
 
   const teams = extractTeams(query);
   const date = extractDate(query);
+  const competition = extractCompetition(query);
 
   try {
     let events: SportsDbEvent[] = [];
@@ -116,16 +142,20 @@ export async function GET(request: NextRequest) {
         ]);
         events = [...(past.results || []), ...(next.events || [])];
       }
+    } else if (date) {
+      const data = await sportsDb(`eventsday.php?d=${date}&s=Soccer`);
+      events = data.events || [];
     }
 
     const matches = events
+      .filter((event) => !competition || event.strLeague?.toLowerCase().includes(competition.toLowerCase()))
       .filter((event, index, all) => all.findIndex((item) => item.idEvent === event.idEvent) === index)
       .slice(0, 5)
       .map((event, index) => normalize(event, index, date));
 
     return NextResponse.json({
       matches,
-      parsed: { teams, date },
+      parsed: { teams, date, competition },
       source: "TheSportsDB",
     });
   } catch {
