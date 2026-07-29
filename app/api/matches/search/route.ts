@@ -1,0 +1,137 @@
+import { NextRequest, NextResponse } from "next/server";
+
+type SportsDbEvent = {
+  idEvent: string;
+  strEvent: string;
+  strLeague?: string;
+  strSeason?: string;
+  dateEvent?: string;
+  strTime?: string;
+  intHomeScore?: string | null;
+  intAwayScore?: string | null;
+  strStatus?: string | null;
+  strHomeTeam?: string;
+  strAwayTeam?: string;
+  strVenue?: string | null;
+};
+
+const teamAliases: Record<string, string> = {
+  曼联: "Manchester United",
+  曼城: "Manchester City",
+  利物浦: "Liverpool",
+  阿森纳: "Arsenal",
+  切尔西: "Chelsea",
+  热刺: "Tottenham",
+  皇马: "Real Madrid",
+  巴萨: "Barcelona",
+  拜仁: "Bayern Munich",
+  巴黎: "Paris SG",
+  国米: "Inter Milan",
+  米兰: "AC Milan",
+  尤文: "Juventus",
+  阿根廷: "Argentina",
+  英格兰: "England",
+  法国: "France",
+  德国: "Germany",
+  西班牙: "Spain",
+  葡萄牙: "Portugal",
+  巴西: "Brazil",
+};
+
+function extractTeams(query: string) {
+  return Object.entries(teamAliases)
+    .filter(([alias]) => query.toLowerCase().includes(alias.toLowerCase()))
+    .map(([, team]) => team)
+    .slice(0, 2);
+}
+
+function extractDate(query: string) {
+  const full = query.match(/(20\d{2})[./-](\d{1,2})[./-](\d{1,2})/);
+  if (full) {
+    return `${full[1]}-${full[2].padStart(2, "0")}-${full[3].padStart(2, "0")}`;
+  }
+  const short = query.match(/(\d{1,2})月(\d{1,2})日/);
+  if (short) {
+    return `${new Date().getFullYear()}-${short[1].padStart(2, "0")}-${short[2].padStart(2, "0")}`;
+  }
+  return undefined;
+}
+
+async function sportsDb(path: string) {
+  const response = await fetch(`https://www.thesportsdb.com/api/v1/json/123/${path}`, {
+    next: { revalidate: 300 },
+  });
+  if (!response.ok) throw new Error(`TheSportsDB ${response.status}`);
+  return response.json();
+}
+
+function normalize(event: SportsDbEvent, index: number, queryDate?: string) {
+  const home = event.strHomeTeam || event.strEvent.split(" vs ")[0] || "主队";
+  const away = event.strAwayTeam || event.strEvent.split(" vs ")[1] || "客队";
+  const hasScore = event.intHomeScore != null && event.intAwayScore != null;
+  const dateMatches = queryDate ? event.dateEvent === queryDate : true;
+  const confidence = Math.max(56, 94 - index * 9 - (dateMatches ? 0 : 18));
+
+  return {
+    id: event.idEvent,
+    competition: event.strLeague || "足球赛事",
+    date: event.dateEvent || "日期待确认",
+    teams: `${home} vs ${away}`,
+    homeTeam: home,
+    awayTeam: away,
+    score: hasScore ? `${event.intHomeScore}–${event.intAwayScore}` : "未开赛",
+    homeScore: hasScore ? Number(event.intHomeScore) : null,
+    awayScore: hasScore ? Number(event.intAwayScore) : null,
+    status: event.strStatus || (hasScore ? "已结束" : "赛程"),
+    confidence,
+    reason: dateMatches ? "球队与日期信息匹配" : "球队匹配，日期需要确认",
+    source: "TheSportsDB",
+    venue: event.strVenue || undefined,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const query = request.nextUrl.searchParams.get("q")?.trim();
+  if (!query) return NextResponse.json({ matches: [], error: "请输入比赛描述" }, { status: 400 });
+
+  const teams = extractTeams(query);
+  const date = extractDate(query);
+
+  try {
+    let events: SportsDbEvent[] = [];
+
+    if (teams.length >= 2) {
+      const eventName = `${teams[0]}_vs_${teams[1]}`.replaceAll(" ", "_");
+      const params = new URLSearchParams({ e: eventName });
+      if (date) params.set("d", date);
+      const data = await sportsDb(`searchevents.php?${params}`);
+      events = data.event || [];
+    } else if (teams.length === 1) {
+      const teamData = await sportsDb(`searchteams.php?t=${encodeURIComponent(teams[0])}`);
+      const teamId = teamData.teams?.[0]?.idTeam;
+      if (teamId) {
+        const [past, next] = await Promise.all([
+          sportsDb(`eventslast.php?id=${teamId}`),
+          sportsDb(`eventsnext.php?id=${teamId}`),
+        ]);
+        events = [...(past.results || []), ...(next.events || [])];
+      }
+    }
+
+    const matches = events
+      .filter((event, index, all) => all.findIndex((item) => item.idEvent === event.idEvent) === index)
+      .slice(0, 5)
+      .map((event, index) => normalize(event, index, date));
+
+    return NextResponse.json({
+      matches,
+      parsed: { teams, date },
+      source: "TheSportsDB",
+    });
+  } catch {
+    return NextResponse.json(
+      { matches: [], error: "在线赛事服务暂时不可用，请使用演示比赛或补充事实。" },
+      { status: 502 },
+    );
+  }
+}

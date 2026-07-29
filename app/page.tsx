@@ -24,6 +24,22 @@ const headlines = [
   "五后卫没守住七分钟：图赫尔到底在怕什么？",
 ];
 
+type MatchCandidate = {
+  id: string;
+  competition: string;
+  date: string;
+  teams: string;
+  score: string;
+  status: string;
+  confidence: number;
+  reason: string;
+  source?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  homeScore?: number | null;
+  awayScore?: number | null;
+};
+
 const matchCandidates = [
   {
     id: "wc-2026-eng-arg",
@@ -45,7 +61,44 @@ const matchCandidates = [
     confidence: 62,
     reason: "球队匹配，但日期与赛事阶段不一致",
   },
-];
+] satisfies MatchCandidate[];
+
+function buildOpinionPackage(match: MatchCandidate, stance: string) {
+  const [fallbackHome, fallbackAway] = match.teams.split(" vs ");
+  const home = match.homeTeam || fallbackHome || "主队";
+  const away = match.awayTeam || fallbackAway || "客队";
+  const scoreKnown = match.score !== "未开赛" && match.score !== "–";
+  const verdict = stance.trim() || (
+    scoreKnown
+      ? `${home}和${away}踢出的不只是一场${match.score}，而是一堂“名气不能替你完成比赛”的公开课。`
+      : `${home}对${away}，真正值得看的不是赛前声量，而是谁能先把计划变成行动。`
+  );
+
+  const generatedScript = [
+    { time: "00:00", text: `${home}对${away}，先别急着复述比分。${verdict}` },
+    { time: "00:15", text: `${match.competition}，${match.date}，${scoreKnown ? `最终比分${match.score}` : "比赛信息已经匹配"}。这是事实底座，下面才是观点。` },
+    { time: "00:32", text: `${home}的问题，不一定是某一个人突然不会踢了，而是比赛一进入压力区，原来的计划就像临时搭的棚子——风还没大，先自己响起来了。` },
+    { time: "00:55", text: `${away}也不是靠运气把结果捡回家。足球最诚实的地方就在这儿：你可以控制话题，但控制不了每一次二点球和每一次退防选择。` },
+    { time: "01:18", text: `当然，单场比赛不能给一支球队判终身。但“偶然”如果每次都穿着同一件衣服出现，那就该检查衣柜，而不是继续怪天气。` },
+    { time: "01:42", text: `${verdict} 下一场可以换人、换阵，最难换掉的，是球队在关键时刻下意识选择的那条路。` },
+  ];
+
+  return {
+    thesis: verdict,
+    script: generatedScript,
+    facts: [
+      ["比赛数据", `${home} ${match.score} ${away}`, match.source || "用户确认"],
+      ["赛事信息", `${match.date} · ${match.competition}`, match.source || "用户确认"],
+      ["分析判断", "比赛矛盾由结果、对阵与用户立场提炼", "观点引擎"],
+      ["事实边界", "未获得的进球时间、阵容和技术统计不会自动补写", "系统规则"],
+    ],
+    headlines: [
+      `${home}对${away}：比分只是结果，选择才是答案`,
+      `${match.score}之后，最该复盘的不是运气`,
+      `别急着找战犯，这场球的问题比一个人更大`,
+    ],
+  };
+}
 
 export default function Home() {
   const [mode, setMode] = useState("资料锐评");
@@ -55,8 +108,13 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("口播稿");
   const [copied, setCopied] = useState(false);
   const [matchQuery, setMatchQuery] = useState("2026.7.16 英格兰 vs 阿根廷｜世界杯半决赛");
-  const [selectedMatch, setSelectedMatch] = useState(matchCandidates[0]);
+  const [selectedMatch, setSelectedMatch] = useState<MatchCandidate>(matchCandidates[0]);
+  const [candidates, setCandidates] = useState<MatchCandidate[]>(matchCandidates);
   const [showMatches, setShowMatches] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchMessage, setSearchMessage] = useState("");
+  const [stance, setStance] = useState("英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。");
+  const [content, setContent] = useState(() => ({ thesis: "英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。", script, facts, headlines }));
   const resultRef = useRef<HTMLElement>(null);
 
   const total = useMemo(() => duration === "60 秒" ? "约 280 字" : duration === "3 分钟" ? "约 900 字" : "约 520 字", [duration]);
@@ -64,22 +122,41 @@ export default function Home() {
   function generate() {
     setGenerated(false);
     window.setTimeout(() => {
+      setContent(buildOpinionPackage(selectedMatch, stance));
       setGenerated(true);
       resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 450);
   }
 
   async function copyScript() {
-    await navigator.clipboard?.writeText(script.map((item) => item.text).join("\n\n"));
+    await navigator.clipboard?.writeText(content.script.map((item) => item.text).join("\n\n"));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
-  function findMatch() {
+  async function findMatch() {
     setShowMatches(true);
+    setSearching(true);
+    setSearchMessage("");
+    try {
+      const response = await fetch(`/api/matches/search?q=${encodeURIComponent(matchQuery)}`);
+      const data = await response.json();
+      if (response.ok && data.matches?.length) {
+        setCandidates(data.matches);
+        setSearchMessage(`已从 ${data.source} 获取真实赛程`);
+      } else {
+        setCandidates(matchCandidates);
+        setSearchMessage(data.error || "未找到足够明确的比赛，已显示演示候选");
+      }
+    } catch {
+      setCandidates(matchCandidates);
+      setSearchMessage("在线匹配暂不可用，已显示演示候选");
+    } finally {
+      setSearching(false);
+    }
   }
 
-  function selectMatch(candidate: typeof matchCandidates[number]) {
+  function selectMatch(candidate: MatchCandidate) {
     setSelectedMatch(candidate);
     setMatchQuery(`${candidate.date} ${candidate.teams}｜${candidate.competition}`);
     setShowMatches(false);
@@ -150,7 +227,9 @@ export default function Home() {
                     <div><b>找到 {matchCandidates.length} 场可能的比赛</b><span>按匹配度排序</span></div>
                     <button onClick={() => setShowMatches(false)} aria-label="关闭候选比赛">×</button>
                   </div>
-                  {matchCandidates.map((candidate, index) => (
+                  {searching && <div className="match-loading">正在识别球队、日期和赛事…</div>}
+                  {!searching && searchMessage && <div className="match-message">{searchMessage}</div>}
+                  {!searching && candidates.map((candidate, index) => (
                     <button className="match-option" key={candidate.id} onClick={() => selectMatch(candidate)}>
                       <span className="match-rank">0{index + 1}</span>
                       <span className="match-main">
@@ -194,7 +273,7 @@ export default function Home() {
             </div>
 
             <label>我的立场 <span className="optional">可选，不填则自动提炼</span></label>
-            <textarea defaultValue="英格兰不是输在不会防守，而是把领先误解成了停止进攻的许可证。" aria-label="观点立场" />
+            <textarea value={stance} onChange={(event) => setStance(event.target.value)} aria-label="观点立场" />
 
             <div className="form-row bottom-row">
               <div>
@@ -227,7 +306,7 @@ export default function Home() {
 
         <div className="thesis">
           <p>核心观点</p>
-          <h3>英格兰不是输在不会防守，<br />而是把领先误解成了<span>停止进攻的许可证。</span></h3>
+          <h3>{content.thesis}</h3>
         </div>
 
         <nav className="tabs" aria-label="内容包视图">
@@ -238,7 +317,7 @@ export default function Home() {
           <article className="script-card">
             <div className="script-toolbar"><span><i /> 预计 01:52</span><button onClick={copyScript}>{copied ? "已复制 ✓" : "复制全文"}</button></div>
             <div className="script-list">
-              {script.map((item, index) => (
+              {content.script.map((item, index) => (
                 <div className="script-line" key={item.time}>
                   <time>{item.time}</time><p>{item.text}</p><span>{index === 0 || index === 5 ? "金句" : index === 3 ? "数据" : ""}</span>
                 </div>
@@ -261,13 +340,13 @@ export default function Home() {
 
         {activeTab === "事实卡" && (
           <article className="facts-card">
-            {facts.map(([type, fact, source]) => <div key={fact}><span>{type}</span><b>{fact}</b><small>{source}</small></div>)}
+            {content.facts.map(([type, fact, source]) => <div key={fact}><span>{type}</span><b>{fact}</b><small>{source}</small></div>)}
           </article>
         )}
 
         {activeTab === "标题文案" && (
           <article className="headlines-card">
-            {headlines.map((headline, index) => <div key={headline}><span>0{index + 1}</span><b>{headline}</b><button onClick={() => navigator.clipboard?.writeText(headline)}>复制</button></div>)}
+            {content.headlines.map((headline, index) => <div key={headline}><span>0{index + 1}</span><b>{headline}</b><button onClick={() => navigator.clipboard?.writeText(headline)}>复制</button></div>)}
           </article>
         )}
       </section>
