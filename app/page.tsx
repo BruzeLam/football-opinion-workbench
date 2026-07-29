@@ -24,6 +24,29 @@ const headlines = [
   "五后卫没守住七分钟：图赫尔到底在怕什么？",
 ];
 
+const matchCandidates = [
+  {
+    id: "wc-2026-eng-arg",
+    competition: "2026 世界杯 · 半决赛",
+    date: "2026.07.16",
+    teams: "英格兰 vs 阿根廷",
+    score: "1–2",
+    status: "已结束",
+    confidence: 96,
+    reason: "日期、双方球队和赛事阶段均匹配",
+  },
+  {
+    id: "friendly-2025-eng-arg",
+    competition: "国际友谊赛",
+    date: "2025.10.11",
+    teams: "英格兰 vs 阿根廷",
+    score: "–",
+    status: "历史赛程",
+    confidence: 62,
+    reason: "球队匹配，但日期与赛事阶段不一致",
+  },
+];
+
 export default function Home() {
   const [mode, setMode] = useState("资料锐评");
   const [duration, setDuration] = useState("90 秒");
@@ -31,6 +54,9 @@ export default function Home() {
   const [generated, setGenerated] = useState(true);
   const [activeTab, setActiveTab] = useState("口播稿");
   const [copied, setCopied] = useState(false);
+  const [matchQuery, setMatchQuery] = useState("2026.7.16 英格兰 vs 阿根廷｜世界杯半决赛");
+  const [selectedMatch, setSelectedMatch] = useState(matchCandidates[0]);
+  const [showMatches, setShowMatches] = useState(false);
   const resultRef = useRef<HTMLElement>(null);
 
   const total = useMemo(() => duration === "60 秒" ? "约 280 字" : duration === "3 分钟" ? "约 900 字" : "约 520 字", [duration]);
@@ -47,6 +73,16 @@ export default function Home() {
     await navigator.clipboard?.writeText(script.map((item) => item.text).join("\n\n"));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function findMatch() {
+    setShowMatches(true);
+  }
+
+  function selectMatch(candidate: typeof matchCandidates[number]) {
+    setSelectedMatch(candidate);
+    setMatchQuery(`${candidate.date} ${candidate.teams}｜${candidate.competition}`);
+    setShowMatches(false);
   }
 
   return (
@@ -92,10 +128,54 @@ export default function Home() {
 
         <div className="builder">
           <div className="form-card">
-            <label>比赛或话题</label>
-            <div className="input-with-tag">
-              <input defaultValue="2026.7.16 英格兰 vs 阿根廷｜世界杯半决赛" aria-label="比赛或话题" />
-              <span>已识别</span>
+            <label>用一句话描述比赛 <span className="optional">日期、球队、赛事写不全也可以</span></label>
+            <div className="match-finder">
+              <div className="input-with-tag">
+                <input
+                  value={matchQuery}
+                  onChange={(event) => {
+                    setMatchQuery(event.target.value);
+                    setShowMatches(false);
+                  }}
+                  onKeyDown={(event) => event.key === "Enter" && findMatch()}
+                  placeholder="例如：昨晚阿根廷那场半决赛"
+                  aria-label="比赛或话题"
+                />
+                <button onClick={findMatch}>自动匹配</button>
+              </div>
+
+              {showMatches && (
+                <div className="match-results" aria-live="polite">
+                  <div className="match-results-head">
+                    <div><b>找到 {matchCandidates.length} 场可能的比赛</b><span>按匹配度排序</span></div>
+                    <button onClick={() => setShowMatches(false)} aria-label="关闭候选比赛">×</button>
+                  </div>
+                  {matchCandidates.map((candidate, index) => (
+                    <button className="match-option" key={candidate.id} onClick={() => selectMatch(candidate)}>
+                      <span className="match-rank">0{index + 1}</span>
+                      <span className="match-main">
+                        <small>{candidate.date} · {candidate.competition}</small>
+                        <b>{candidate.teams} <em>{candidate.score}</em></b>
+                        <small>{candidate.reason}</small>
+                      </span>
+                      <span className={`confidence ${candidate.confidence > 80 ? "high" : ""}`}>
+                        <b>{candidate.confidence}%</b>
+                        <small>匹配度</small>
+                      </span>
+                    </button>
+                  ))}
+                  <p>没找到？可以补充大致日期、主客队或赛事名称后重新匹配。</p>
+                </div>
+              )}
+
+              {!showMatches && selectedMatch && (
+                <div className="matched-game">
+                  <span>✓ 已匹配</span>
+                  <div><b>{selectedMatch.teams}</b><small>{selectedMatch.date} · {selectedMatch.competition}</small></div>
+                  <strong>{selectedMatch.confidence}%</strong>
+                  <button onClick={findMatch}>更换</button>
+                </div>
+              )}
             </div>
 
             <div className="form-row">
